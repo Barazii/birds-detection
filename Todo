@@ -1,0 +1,2 @@
+make test again, but only sample of images. For exmaple one folder. Use s5cmd. Load .env file instead of monkeypatch it. 
+Try more threads in processing job. Related to more processing instances / distributed processing aws? 

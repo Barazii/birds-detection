@@ -37,8 +37,11 @@ def processing(pc_base_dir):
         directory, sep=" ", names=["id", "image_file_name"], header=None
     ).dropna(axis=0)
     images_sizes = []
-    for i, ifn in zip(images_df["id"], images_df["image_file_name"]):
-        img = cv2.imread("dataset/images" + i)
+    directory = pc_base_dir / "dataset" / "images"
+    for id, ifn in zip(images_df["id"], images_df["image_file_name"]):
+        img = cv2.imread(directory / ifn)
+        if img is None:
+            raise ValueError("Error in the image path.")
         height, width, _ = img.shape
         image_size = {"id": id, "width": width, "height": height}
         images_sizes.append(image_size)
@@ -85,7 +88,7 @@ def processing(pc_base_dir):
     full_df["ymin"] = full_df["y_abs"] / full_df["height"]
     full_df["ymax"] = (full_df["y_abs"] + full_df["bbox_height"]) / full_df["height"]
 
-    if bool(os.environ["SAMPLE_ONLY"]):
+    if bool(int(os.environ["SAMPLE_ONLY"])):
         # small subset of species to reduce resources consumption
         criteria = full_df["class_id"].isin(SAMPLE_CLASSES)
         full_df = full_df[criteria]
@@ -104,7 +107,7 @@ def processing(pc_base_dir):
     train_dir = pc_base_dir / "train" / "birds_ssd_train.lst"
     val_dir = pc_base_dir / "validation" / "birds_ssd_val.lst"
 
-    if bool(os.environ["RANDOM_SPLIT"]):
+    if bool(int(os.environ["RANDOM_SPLIT"])):
         # split into training and validation sets
         train_df, val_df = split_to_train_test(
             full_df, "class_id", float(os.environ["TRAIN_RATIO"])

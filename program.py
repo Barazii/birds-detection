@@ -20,12 +20,18 @@ def run_pipeline():
 
     # define the processor
     image_uri = image_uris.retrieve(framework="object-detection", region="eu-north-1")
+    image_uri = "482497089777.dkr.ecr.eu-north-1.amazonaws.com/mxnetrecio:latest"
     processor = ScriptProcessor(
         image_uri=image_uri,
         role=os.environ["SM_EXEC_ROLE"],
         instance_count=int(os.environ["PROCESSING_JOB_INSTANCE_COUNT"]),
         instance_type=os.environ["PROCESSING_JOB_INSTANCE_TYPE"],
-        env={},
+        env={
+            "PC_BASE_DIR": os.environ["PC_BASE_DIR"],
+            "SAMPLE_ONLY": os.environ["SAMPLE_ONLY"],
+            "RANDOM_SPLIT": os.environ["RANDOM_SPLIT"],
+            "TRAIN_RATIO": os.environ["TRAIN_RATIO"],
+        },
         command=["python3"],
     )
 
@@ -37,7 +43,7 @@ def run_pipeline():
         description="This step is to convert the images to RecordIO files.",
         inputs=[
             ProcessingInput(
-                source=os.path.join(os.environ["S3_BUCKET_URI"], "dataset"),
+                source=os.path.join(os.environ["S3_PROJECT_URI"], "dataset"),
                 destination=os.path.join(os.environ["PC_BASE_DIR"], "dataset"),
                 input_name="dataset",
                 s3_data_type="S3Prefix",
@@ -57,7 +63,7 @@ def run_pipeline():
             ProcessingOutput(
                 source=os.path.join(os.environ["PC_BASE_DIR"], "validation"),
                 destination=os.path.join(
-                    os.environ["S3_PROJECT_URI"], "processing-step/vlaidation"
+                    os.environ["S3_PROJECT_URI"], "processing-step/validation"
                 ),
                 output_name="validation",
             ),

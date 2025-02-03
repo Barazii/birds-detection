@@ -20,12 +20,9 @@
 # from __future__ import print_function
 
 import os
-import sys
 
 # curr_path = os.path.abspath(os.path.dirname(__file__))
 # sys.path.append(os.path.join(curr_path, "../python"))
-import argparse
-import random
 import time
 import traceback
 
@@ -125,64 +122,17 @@ def write_worker(q_out, fname, working_dir):
             count += 1
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Create an image list or \
-        make a record database by reading from an image list",
-    )
-    parser.add_argument("--prefix", help="prefix of input/output lst and rec files.")
-    parser.add_argument("--root", help="path to folder containing images.")
-
-    rgroup = parser.add_argument_group("Options for creating database")
-    rgroup.add_argument(
-        "--quality",
-        type=int,
-        default=95,
-        help="JPEG quality for encoding, 1-100; or PNG compression for encoding, 1-9",
-    )
-    rgroup.add_argument(
-        "--num-thread",
-        type=int,
-        default=1,
-        help="number of thread to use for encoding. order of images will be different\
-        from the input list if >1. the input list will be modified to match the\
-        resulting order.",
-    )
-    rgroup.add_argument(
-        "--color",
-        type=int,
-        default=1,
-        choices=[-1, 0, 1],
-        help="specify the color mode of the loaded image.\
-        1: Loads a color image. Any transparency of image will be neglected. It is the default flag.\
-        0: Loads image in grayscale mode.\
-        -1:Loads image as such including alpha channel.",
-    )
-    rgroup.add_argument(
-        "--encoding",
-        type=str,
-        default=".jpg",
-        choices=[".jpg", ".png"],
-        help="specify the encoding of the images.",
-    )
-    rgroup.add_argument(
-        "--pack-label",
-        action="store_true",
-        help="Whether to also pack multi dimensional label in the record file",
-    )
-    args = parser.parse_args()
-    args.prefix = os.path.abspath(args.prefix)
-    args.root = os.path.abspath(args.root)
-    return args
-
-
-if __name__ == "__main__":
-    args = parse_args()
-    if os.path.isdir(args.prefix):
-        working_dir = args.prefix
+def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False):
+    print("############ root ", root)
+    print("############ prefix ", prefix)
+    prefix = os.path.abspath(prefix)
+    print("############ prefix ", prefix)
+    root = os.path.abspath(root)
+    print("############ root ", root)
+    if os.path.isdir(prefix):
+        working_dir = prefix
     else:
-        working_dir = os.path.dirname(args.prefix)
+        working_dir = os.path.dirname(prefix)
     files = [
         os.path.join(working_dir, fname)
         for fname in os.listdir(working_dir)
@@ -190,18 +140,19 @@ if __name__ == "__main__":
     ]
     count = 0
     for fname in files:
-        if fname.startswith(args.prefix) and fname.endswith(".lst"):
+        if fname.startswith(prefix) and fname.endswith(".lst"):
             print("Creating .rec file from", fname, "in", working_dir)
             count += 1
             image_list = read_list(fname)
             # -- write_record -- #
-            if args.num_thread > 1:
+            if num_thread > 1:
                 import multiprocessing
-                q_in = [multiprocessing.Queue(1024) for i in range(args.num_thread)]
+                q_in = [multiprocessing.Queue(1024) for i in range(num_thread)]
                 q_out = multiprocessing.Queue(1024)
+                args = type('Args', (), {'root': root, 'quality': quality, 'color': color, 'encoding': encoding, 'pack_label': pack_label})()
                 read_process = [
                     multiprocessing.Process(target=read_worker, args=(args, q_in[i], q_out))
-                    for i in range(args.num_thread)
+                    for i in range(num_thread)
                 ]
                 for p in read_process:
                     p.start()
@@ -233,6 +184,7 @@ if __name__ == "__main__":
                 )
                 cnt = 0
                 pre_time = time.time()
+                args = type('Args', (), {'root': root, 'quality': quality, 'color': color, 'encoding': encoding, 'pack_label': pack_label})()
                 for i, item in enumerate(image_list):
                     image_encode(args, i, item, q_out)
                     if q_out.empty():
@@ -245,4 +197,8 @@ if __name__ == "__main__":
                         pre_time = cur_time
                     cnt += 1
     if not count:
-        print("Did not find and list file with prefix %s" % args.prefix)
+        print("Did not find and list file with prefix %s" % prefix)
+
+
+if __name__ == "__main__":
+    im2recio('birds_ssd', 'CUB_200_2011/dataset/images', quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False)

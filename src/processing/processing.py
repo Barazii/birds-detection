@@ -139,18 +139,15 @@ def processing(pc_base_dir):
 
     # use function im2recio to convert the lst files to recordio files
     images_dir = pc_base_dir / "dataset" / "images"
-    im2recio(lst_files_dir, images_dir, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False)
-    # im2recio(lst_files_dir, images_dir, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False)
+    im2recio(lst_files_dir, images_dir, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=True)
 
-    # write/put/copy the rec files in the right destination directory.
-    print("###", os.listdir(lst_files_dir))
+    # put the rec files in the right destination directory.
     for file in os.listdir(lst_files_dir):
         if file.endswith('.rec'):
             if 'train' in file:
                 shutil.copy(lst_files_dir / file, pc_base_dir / "train" / file)
             elif 'val' in file:
                 shutil.copy(lst_files_dir / file, pc_base_dir / "validation" / file)
-    # print("###", os.listdir(pc_base_dir / "validation"))
 
 
 

@@ -123,12 +123,8 @@ def write_worker(q_out, fname, working_dir):
 
 
 def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False):
-    print("############ root ", root)
-    print("############ prefix ", prefix)
     prefix = os.path.abspath(prefix)
-    print("############ prefix ", prefix)
     root = os.path.abspath(root)
-    print("############ root ", root)
     if os.path.isdir(prefix):
         working_dir = prefix
     else:
@@ -198,3 +194,7 @@ def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', p
                     cnt += 1
     if not count:
         print("Did not find and list file with prefix %s" % prefix)
+
+
+# if __name__ == "__main__":
+#     im2recio('birds_ssd', 'CUB_200_2011/dataset/images', quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False)

@@ -2,6 +2,12 @@ import cv2
 import pandas as pd
 import os
 from pathlib import Path
+import time
+
+import shutil
+shutil.copytree(os.path.join(os.environ["PC_BASE_DIR"], "utils"), os.path.join(os.environ["PC_BASE_DIR"], "input/code"), dirs_exist_ok=True)
+
+from im2rec import im2recio
 
 
 SAMPLE_CLASSES = [17, 36, 47, 68, 73]
@@ -104,30 +110,48 @@ def processing(pc_base_dir):
     # use 4 decimal places, as it seems to be required by the Object Detection algorithm
     pd.set_option("display.precision", 4)
 
-    train_dir = pc_base_dir / "train" / "birds_ssd_train.lst"
-    val_dir = pc_base_dir / "validation" / "birds_ssd_val.lst"
-
+    lst_files_dir = pc_base_dir / "lst" 
+    lst_files_dir.mkdir(parents=True, exist_ok=True)
+    
     if bool(int(os.environ["RANDOM_SPLIT"])):
         # split into training and validation sets
         train_df, val_df = split_to_train_test(
             full_df, "class_id", float(os.environ["TRAIN_RATIO"])
         )
         train_df[IM2REC_SSD_COLS].to_csv(
-            train_dir, sep="\t", float_format="%.4f", header=None
+            lst_files_dir / "birds_ssd_train.lst", sep="\t", float_format="%.4f", header=None
         )
         val_df[IM2REC_SSD_COLS].to_csv(
-            val_dir, sep="\t", float_format="%.4f", header=None
+            lst_files_dir / "birds_ssd_val.lst", sep="\t", float_format="%.4f", header=None
         )
 
     else:
         train_df = full_df[(full_df.is_training_image == 1)]
         train_df[IM2REC_SSD_COLS].to_csv(
-            train_dir, sep="\t", float_format="%.4f", header=None
+            lst_files_dir / "birds_ssd_train.lst", sep="\t", float_format="%.4f", header=None
         )
         val_df = full_df[(full_df.is_training_image == 0)]
         val_df[IM2REC_SSD_COLS].to_csv(
-            val_dir, sep="\t", float_format="%.4f", header=None
+            lst_files_dir / "birds_ssd_val.lst", sep="\t", float_format="%.4f", header=None
         )
+
+    time.sleep(2)
+
+    # use function im2recio to convert the lst files to recordio files
+    images_dir = pc_base_dir / "dataset" / "images"
+    im2recio(lst_files_dir, images_dir, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False)
+    # im2recio(lst_files_dir, images_dir, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False)
+
+    # write/put/copy the rec files in the right destination directory.
+    print("###", os.listdir(lst_files_dir))
+    for file in os.listdir(lst_files_dir):
+        if file.endswith('.rec'):
+            if 'train' in file:
+                shutil.copy(lst_files_dir / file, pc_base_dir / "train" / file)
+            elif 'val' in file:
+                shutil.copy(lst_files_dir / file, pc_base_dir / "validation" / file)
+    # print("###", os.listdir(pc_base_dir / "validation"))
+
 
 
 if __name__ == "__main__":

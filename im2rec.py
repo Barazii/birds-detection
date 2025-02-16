@@ -71,6 +71,13 @@ def image_encode(args, i, item, q_out):
         print("imread read blank (None) image for file: %s" % fullpath)
         q_out.put((i, None, item))
         return
+    if args.resize:
+        if img.shape[0] > img.shape[1]:
+            newsize = (args.resize, img.shape[0] * args.resize // img.shape[1])
+        else:
+            newsize = (img.shape[1] * args.resize // img.shape[0], args.resize)
+        img = cv2.resize(img, newsize)
+
   
     try:
         s = mx.recordio.pack_img(header, img, quality=args.quality, img_fmt=args.encoding)
@@ -122,13 +129,9 @@ def write_worker(q_out, fname, working_dir):
             count += 1
 
 
-def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False):
-    print("############ root ", root)
-    print("############ prefix ", prefix)
+def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', resize=0, pack_label=False):
     prefix = os.path.abspath(prefix)
-    print("############ prefix ", prefix)
     root = os.path.abspath(root)
-    print("############ root ", root)
     if os.path.isdir(prefix):
         working_dir = prefix
     else:
@@ -149,7 +152,7 @@ def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', p
                 import multiprocessing
                 q_in = [multiprocessing.Queue(1024) for i in range(num_thread)]
                 q_out = multiprocessing.Queue(1024)
-                args = type('Args', (), {'root': root, 'quality': quality, 'color': color, 'encoding': encoding, 'pack_label': pack_label})()
+                args = type('Args', (), {'root': root, 'quality': quality, 'color': color, 'encoding': encoding, 'resize': resize, 'pack_label': pack_label})()
                 read_process = [
                     multiprocessing.Process(target=read_worker, args=(args, q_in[i], q_out))
                     for i in range(num_thread)
@@ -184,7 +187,7 @@ def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', p
                 )
                 cnt = 0
                 pre_time = time.time()
-                args = type('Args', (), {'root': root, 'quality': quality, 'color': color, 'encoding': encoding, 'pack_label': pack_label})()
+                args = type('Args', (), {'root': root, 'quality': quality, 'color': color, 'encoding': encoding, 'resize': resize, 'pack_label': pack_label})()
                 for i, item in enumerate(image_list):
                     image_encode(args, i, item, q_out)
                     if q_out.empty():
@@ -198,3 +201,7 @@ def im2recio(prefix, root, quality=95, num_thread=1, color=1, encoding='.jpg', p
                     cnt += 1
     if not count:
         print("Did not find and list file with prefix %s" % prefix)
+
+
+# if __name__ == "__main__":
+#     im2recio('birds_ssd', 'CUB_200_2011/dataset/images', quality=95, num_thread=1, color=1, encoding='.jpg', pack_label=False)

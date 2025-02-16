@@ -67,12 +67,19 @@ def run_pipeline():
                 ),
                 output_name="validation",
             ),
+            ProcessingOutput(
+                source=os.path.join(os.environ["PC_BASE_DIR"], "lst"),
+                destination=os.path.join(
+                    os.environ["S3_PROJECT_URI"], "processing-step/lst"
+                ),
+                output_name="lst",
+            ),
         ],
         code="src/processing/processing.py",
         cache_config=cache_config,
     )
 
-    image_uri = image_uris.retrieve(framework="object-detection", region="eu-north-1")
+    image_uri = image_uris.retrieve(framework="object-detection", region="eu-north-1", version="latest")
     estimator = Estimator(
         image_uri=image_uri,
         role=os.environ["SM_EXEC_ROLE"],
